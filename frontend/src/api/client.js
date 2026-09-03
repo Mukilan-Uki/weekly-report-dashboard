@@ -16,3 +16,14 @@ client.interceptors.request.use((config) => {
 });
 
 export default client;
+
+// Ask the backend if AI is configured (key present in .env).
+// Pages hide their AI buttons when this is false.
+export async function getAiStatus() {
+  try {
+    const res = await client.get('/ai/status');
+    return res.data.enabled === true;
+  } catch {
+    return false;
+  }
+}

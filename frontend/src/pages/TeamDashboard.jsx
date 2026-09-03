@@ -49,8 +49,23 @@ export default function TeamDashboard() {
 
   useEffect(() => {
     load();
+    getAiStatus().then(setAiOn);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Ask the AI to summarize the currently filtered reports.
+  async function generateInsights() {
+    setInsightsLoading(true);
+    setError('');
+    try {
+      const res = await client.post('/ai/insights', { weekStart: week || undefined });
+      setInsights(res.data.insights);
+    } catch (err) {
+      setError(err.response?.data?.message || 'AI insights failed');
+    } finally {
+      setInsightsLoading(false);
+    }
+  }
 
   // Recharts pie needs [{ name, value }] — convert the byStatus object.
   const pieData = data

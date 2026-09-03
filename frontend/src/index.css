@@ -95,6 +95,9 @@ button.danger { background: #dc2626; }
 
 .recent { padding: 10px 0; border-top: 1px solid #e5e7eb; }
 
+/* AI summary text keeps its line breaks */
+.insights { white-space: pre-wrap; margin-top: 12px; }
+
 /* Status pill: draft gray, submitted blue, needs-correction orange, approved green */
 .badge {
   display: inline-block;

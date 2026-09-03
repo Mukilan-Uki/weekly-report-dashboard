@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import client from '../api/client';
+import client, { getAiStatus } from '../api/client';
 import StatusBadge from '../components/StatusBadge';
 
 // Monday of current week as yyyy-mm-dd (matches backend weekStart format).

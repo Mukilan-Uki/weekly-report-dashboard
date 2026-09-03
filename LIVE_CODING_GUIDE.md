@@ -102,6 +102,13 @@ Answer: "JWT has expiresIn 7d. Interceptor sends it; backend returns 401; fronte
 - **Sept 7:** Full mock: explain every file to a friend / mirror in 10 min, then add a feature live in 20 min.
 - **Sept 8:** `npm run seed` for clean demo data. Demo path: login as member → submit report → login as manager → show dashboard.
 
+## AI feature (how to explain it)
+- `backend/ai.js`: "One helper, no SDK. `askAI(prompt)` POSTs to an OpenAI-compatible `/chat/completions` URL with the key from `.env`, 30s timeout, reply capped at 500 tokens. Throws friendly errors."
+- `routes/ai.js`: "`GET /status` tells the frontend to hide AI buttons when no key. `POST /polish` fixes one text field (max 2000 chars). `POST /insights` loads reports with the SAME visibility rule as the dashboard, builds a prompt, returns bullets."
+- "The key NEVER reaches the browser — frontend only calls our `/api/ai/*`, the backend attaches the key."
+- "No key? App still works: buttons hidden, API replies 503. `.env` is gitignored so the key can't leak to GitHub."
+- Viva extras: cost control = max_tokens + input caps (2000 chars, 10 reports); switching provider = only `.env` values change, zero code change.
+
 ## Demo accounts (after `npm run seed` in backend/)
 - manager@demo.com / manager123
 - member@demo.com / member123
