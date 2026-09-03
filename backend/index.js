@@ -6,6 +6,7 @@ import mongoose from 'mongoose';
 import authRoutes from './routes/auth.js';
 import reportRoutes from './routes/reports.js';
 import dashboardRoutes from './routes/dashboard.js';
+import categoryRoutes from './routes/categories.js';
 
 dotenv.config();
 
@@ -28,6 +29,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/categories', categoryRoutes);
 
 // Connect to MongoDB, THEN start server.
 // Works with local Mongo AND Atlas — just change MONGODB_URI in .env

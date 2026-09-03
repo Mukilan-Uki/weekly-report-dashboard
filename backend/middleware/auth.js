@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken';
 
 // Middleware 1: check the user is logged in.
 // Frontend sends: Authorization: Bearer <token>
-// If token is valid, we attach req.user = { id, role } and call next().
+// If valid, we attach req.user = { id, role } and call next().
 export function requireLogin(req, res, next) {
   const header = req.headers.authorization || '';
 
@@ -23,11 +23,29 @@ export function requireLogin(req, res, next) {
   }
 }
 
-// Middleware 2: check the user is a manager.
-// Use AFTER requireLogin: requireLogin -> requireManager
+// Middleware 2: allow only certain roles.
+// Example: requireRole('manager', 'admin')
+export function requireRole(...roles) {
+  return (req, res, next) => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      return res.status(403).json({ message: 'Not allowed for your role' });
+    }
+    next();
+  };
+}
+
+// Managers AND admins (admin can do everything a manager can).
 export function requireManager(req, res, next) {
-  if (req.user?.role !== 'manager') {
+  if (req.user?.role !== 'manager' && req.user?.role !== 'admin') {
     return res.status(403).json({ message: 'Managers only' });
+  }
+  next();
+}
+
+// Admins only (e.g. deleting a category).
+export function requireAdmin(req, res, next) {
+  if (req.user?.role !== 'admin') {
+    return res.status(403).json({ message: 'Admins only' });
   }
   next();
 }

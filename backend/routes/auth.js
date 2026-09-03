@@ -40,7 +40,7 @@ router.post('/register', async (req, res) => {
       name: name.trim(),
       email: email.toLowerCase().trim(),
       password: hashed,
-      role: role === 'manager' ? 'manager' : 'member',
+      role: ['manager', 'admin'].includes(role) ? role : 'member',
     });
 
     const token = makeToken(user);
@@ -91,6 +91,16 @@ router.get('/me', requireLogin, async (req, res) => {
   const user = await User.findById(req.user.id).select('-password');
   if (!user) return res.status(404).json({ message: 'User not found' });
   res.json({ id: user._id, name: user.name, email: user.email, role: user.role });
+});
+
+// GET /api/auth/users — manager/admin only.
+// Used for "filter by member" dropdowns on review pages.
+router.get('/users', requireLogin, async (req, res) => {
+  if (req.user.role !== 'manager' && req.user.role !== 'admin') {
+    return res.status(403).json({ message: 'Managers only' });
+  }
+  const users = await User.find().select('name email role').sort({ name: 1 });
+  res.json(users.map((u) => ({ id: u._id, name: u.name, email: u.email, role: u.role })));
 });
 
 export default router;

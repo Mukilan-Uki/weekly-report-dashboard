@@ -1,8 +1,10 @@
 import mongoose from 'mongoose';
 
-// User model — same idea as SplitNest: name, email, password, role.
-// Role is either 'member' (default) or 'manager'.
-// Manager can see everyone's reports, member sees only their own.
+// User model.
+// Roles: 'member' (= TeamMember), 'manager', 'admin'.
+// - member: submits own reports
+// - manager: reviews everyone's reports, manages categories
+// - admin: everything manager can + delete categories + see user list
 const userSchema = new mongoose.Schema(
   {
     name: {
@@ -23,7 +25,7 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['member', 'manager'],
+      enum: ['member', 'manager', 'admin'],
       default: 'member',
     },
   },

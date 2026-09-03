@@ -7,30 +7,35 @@ const router = express.Router();
 
 router.use(requireLogin);
 
-// GET /api/dashboard/summary?weekStart=2026-08-31
-// Returns small numbers for the Team Dashboard page:
+// GET /api/dashboard/summary?weekStart=2026-08-31&status=submitted
 // - totalReports, totalHours, totalMembers
-// - hoursByUser: [{ name, hours, count }]  <- used for the bar chart
+// - byStatus: { draft, submitted, needs-correction, approved } <- for the pie chart
+// - hoursByUser: [{ name, hours, count }] <- for the bar chart
 // - recent: last 5 reports
 //
-// Members see ONLY their own numbers. Managers see the whole team.
+// Members see ONLY their own numbers. Managers/admins see the whole team.
 router.get('/summary', async (req, res) => {
   try {
-    const { weekStart } = req.query;
-    const isManager = req.user.role === 'manager';
+    const { weekStart, status } = req.query;
+    const isManager = req.user.role === 'manager' || req.user.role === 'admin';
 
     const reportFilter = {};
     if (!isManager) reportFilter.user = req.user.id;
     if (weekStart) reportFilter.weekStart = weekStart;
+    if (status) reportFilter.status = status;
 
     const reports = await Report.find(reportFilter).populate('user', 'name email');
-    const memberCount = isManager
-      ? await User.countDocuments()
-      : 1;
+    const memberCount = isManager ? await User.countDocuments() : 1;
 
     const totalHours = reports.reduce((sum, r) => sum + (r.hours || 0), 0);
 
-    // Group hours per person for the bar chart.
+    // Count reports per workflow status (for the pie chart).
+    const byStatus = { draft: 0, submitted: 0, 'needs-correction': 0, approved: 0 };
+    for (const r of reports) {
+      if (byStatus[r.status] !== undefined) byStatus[r.status] += 1;
+    }
+
+    // Group hours per person (for the bar chart).
     const byUser = {};
     for (const r of reports) {
       const key = r.user?._id?.toString() || 'unknown';
@@ -44,6 +49,7 @@ router.get('/summary', async (req, res) => {
       totalReports: reports.length,
       totalHours,
       totalMembers: memberCount,
+      byStatus,
       hoursByUser: Object.values(byUser).sort((a, b) => b.hours - a.hours),
       recent: reports.slice(0, 5),
     });
