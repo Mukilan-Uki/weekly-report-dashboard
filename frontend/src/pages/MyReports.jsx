@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import client from '../api/client';
+import StatusBadge from '../components/StatusBadge';
 
 // Monday of current week as yyyy-mm-dd (matches backend weekStart format).
 function currentWeekMonday() {
@@ -11,15 +13,19 @@ function currentWeekMonday() {
 
 const emptyForm = {
   weekStart: currentWeekMonday(),
+  category: '',
   done: '',
   plan: '',
   blockers: '',
   hours: '',
 };
 
+// Page 2: Personal weekly report page.
+// Create/edit form with fixed structure + my reports with Submit buttons.
 export default function MyReports() {
   const [reports, setReports] = useState([]);
-  const [filterWeek, setFilterWeek] = useState('');
+  const [categories, setCategories] = useState([]);
+  const [filterStatus, setFilterStatus] = useState('');
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState('');
@@ -28,8 +34,10 @@ export default function MyReports() {
   async function load() {
     try {
       setLoading(true);
-      const url = filterWeek ? `/reports?weekStart=${filterWeek}` : '/reports';
-      const res = await client.get(url);
+      setError('');
+      const params = new URLSearchParams();
+      if (filterStatus) params.append('status', filterStatus);
+      const res = await client.get(`/reports?${params.toString()}`);
       setReports(res.data);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load reports');
@@ -40,6 +48,7 @@ export default function MyReports() {
 
   useEffect(() => {
     load();
+    client.get('/categories').then((res) => setCategories(res.data)).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -47,28 +56,41 @@ export default function MyReports() {
     setForm((f) => ({ ...f, [name]: value }));
   }
 
+  // Basic client-side validation before sending to the backend.
+  function valid() {
+    if (!form.weekStart || !form.done.trim() || !form.plan.trim()) {
+      setError('Week, Done and Plan are required');
+      return false;
+    }
+    const h = Number(form.hours);
+    if (form.hours === '' || isNaN(h) || h < 0 || h > 168) {
+      setError('Hours must be a number between 0 and 168');
+      return false;
+    }
+    return true;
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
+    if (!valid()) return;
     try {
+      const payload = {
+        done: form.done,
+        plan: form.plan,
+        blockers: form.blockers,
+        hours: Number(form.hours),
+        category: form.category || null,
+      };
       if (editingId) {
-        // Edit existing report (weekStart cannot change — backend ignores it on PUT)
-        const res = await client.put(`/reports/${editingId}`, {
-          done: form.done,
-          plan: form.plan,
-          blockers: form.blockers,
-          hours: Number(form.hours),
-        });
+        const res = await client.put(`/reports/${editingId}`, payload);
         setReports((list) => list.map((r) => (r._id === editingId ? res.data : r)));
         setEditingId(null);
       } else {
-        const res = await client.post('/reports', {
-          ...form,
-          hours: Number(form.hours),
-        });
+        const res = await client.post('/reports', { ...payload, weekStart: form.weekStart });
         setReports((list) => [res.data, ...list]);
       }
-      setForm(emptyForm);
+      setForm({ ...emptyForm, weekStart: currentWeekMonday() });
     } catch (err) {
       setError(err.response?.data?.message || 'Save failed');
     }
@@ -78,6 +100,7 @@ export default function MyReports() {
     setEditingId(report._id);
     setForm({
       weekStart: report.weekStart,
+      category: report.category?._id || '',
       done: report.done,
       plan: report.plan,
       blockers: report.blockers || '',
@@ -86,8 +109,18 @@ export default function MyReports() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  async function handleSend(id) {
+    setError('');
+    try {
+      const res = await client.post(`/reports/${id}/submit`);
+      setReports((list) => list.map((r) => (r._id === id ? res.data : r)));
+    } catch (err) {
+      setError(err.response?.data?.message || 'Submit failed');
+    }
+  }
+
   async function handleDelete(id) {
-    if (!window.confirm('Delete this report?')) return;
+    if (!window.confirm('Delete this draft report?')) return;
     try {
       await client.delete(`/reports/${id}`);
       setReports((list) => list.filter((r) => r._id !== id));
@@ -96,10 +129,11 @@ export default function MyReports() {
     }
   }
 
+  const canEdit = (r) => r.status === 'draft' || r.status === 'needs-correction';
+
   return (
     <div>
       <h2>My Weekly Reports</h2>
-
       {error && <p className="error">{error}</p>}
 
       {/* Create / Edit form */}
@@ -117,7 +151,7 @@ export default function MyReports() {
             />
           </label>
           <label>
-            Hours
+            Hours (0–168)
             <input
               type="number"
               min="0"
@@ -127,39 +161,39 @@ export default function MyReports() {
               required
             />
           </label>
+          <label>
+            Category
+            <select value={form.category} onChange={(e) => updateField('category', e.target.value)}>
+              <option value="">— None —</option>
+              {categories.map((c) => (
+                <option key={c._id} value={c._id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
         <label>
           Done this week
-          <textarea
-            value={form.done}
-            onChange={(e) => updateField('done', e.target.value)}
-            required
-          />
+          <textarea value={form.done} onChange={(e) => updateField('done', e.target.value)} required />
         </label>
         <label>
           Plan for next week
-          <textarea
-            value={form.plan}
-            onChange={(e) => updateField('plan', e.target.value)}
-            required
-          />
+          <textarea value={form.plan} onChange={(e) => updateField('plan', e.target.value)} required />
         </label>
         <label>
           Blockers (optional)
-          <textarea
-            value={form.blockers}
-            onChange={(e) => updateField('blockers', e.target.value)}
-          />
+          <textarea value={form.blockers} onChange={(e) => updateField('blockers', e.target.value)} />
         </label>
         <div className="row">
-          <button type="submit">{editingId ? 'Save changes' : 'Submit report'}</button>
+          <button type="submit">{editingId ? 'Save changes' : 'Save as draft'}</button>
           {editingId && (
             <button
               type="button"
               className="secondary"
               onClick={() => {
                 setEditingId(null);
-                setForm(emptyForm);
+                setForm({ ...emptyForm, weekStart: currentWeekMonday() });
               }}
             >
               Cancel
@@ -171,41 +205,32 @@ export default function MyReports() {
       {/* Filter */}
       <div className="row filter">
         <label>
-          Filter by week
-          <input
-            type="date"
-            value={filterWeek}
-            onChange={(e) => setFilterWeek(e.target.value)}
-          />
+          Filter by status
+          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+            <option value="">All</option>
+            <option value="draft">Draft</option>
+            <option value="submitted">Submitted</option>
+            <option value="needs-correction">Needs Correction</option>
+            <option value="approved">Approved</option>
+          </select>
         </label>
         <button className="secondary" onClick={load}>
           Apply
         </button>
-        {filterWeek && (
-          <button
-            className="secondary"
-            onClick={() => {
-              setFilterWeek('');
-              setTimeout(load, 0);
-            }}
-          >
-            Clear
-          </button>
-        )}
       </div>
 
       {/* List */}
       {loading ? (
         <p>Loading...</p>
       ) : reports.length === 0 ? (
-        <p>No reports yet. Submit your first one above.</p>
+        <p>No reports yet. Save your first draft above.</p>
       ) : (
         <div className="list">
           {reports.map((r) => (
             <div key={r._id} className="card">
               <div className="row between">
                 <strong>Week of {r.weekStart}</strong>
-                <span>{r.hours}h</span>
+                <StatusBadge status={r.status} />
               </div>
               <p>
                 <strong>Done:</strong> {r.done}
@@ -213,21 +238,23 @@ export default function MyReports() {
               <p>
                 <strong>Plan:</strong> {r.plan}
               </p>
-              {r.blockers && (
-                <p>
-                  <strong>Blockers:</strong> {r.blockers}
-                </p>
-              )}
-              {r.user?.name && (
-                <p className="muted">By {r.user.name}</p>
+              {r.category?.name && <p className="muted">Category: {r.category.name}</p>}
+              {r.comments?.length > 0 && (
+                <p className="muted">Manager feedback: {r.comments[r.comments.length - 1].text}</p>
               )}
               <div className="row">
-                <button className="secondary" onClick={() => startEdit(r)}>
-                  Edit
-                </button>
-                <button className="danger" onClick={() => handleDelete(r._id)}>
-                  Delete
-                </button>
+                <Link to={`/reports/${r._id}`}>View</Link>
+                {canEdit(r) && (
+                  <>
+                    <button className="secondary" onClick={() => startEdit(r)}>
+                      Edit
+                    </button>
+                    <button onClick={() => handleSend(r._id)}>Submit for review</button>
+                    <button className="danger" onClick={() => handleDelete(r._id)}>
+                      Delete
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           ))}

@@ -5,16 +5,20 @@ import Navbar from './components/Navbar';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import MyReports from './pages/MyReports';
+import History from './pages/History';
+import ReportDetail from './pages/ReportDetail';
+import ManagerReview from './pages/ManagerReview';
+import Categories from './pages/Categories';
 import TeamDashboard from './pages/TeamDashboard';
 
 function Home() {
   return (
     <div className="card center">
       <h1>Weekly Report Dashboard</h1>
-      <p>Submit weekly reports and see the team summary.</p>
+      <p>Submit weekly reports, review them, and see the team summary.</p>
       <p>
-        <Link to="/reports">Go to My Reports</Link> ·{' '}
-        <Link to="/dashboard">Go to Dashboard</Link>
+        <Link to="/reports">My Reports</Link> · <Link to="/history">History</Link> ·{' '}
+        <Link to="/dashboard">Dashboard</Link>
       </p>
     </div>
   );
@@ -35,6 +39,38 @@ export default function App() {
               element={
                 <ProtectedRoute>
                   <MyReports />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/history"
+              element={
+                <ProtectedRoute>
+                  <History />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/:id"
+              element={
+                <ProtectedRoute>
+                  <ReportDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/review"
+              element={
+                <ProtectedRoute managerOnly>
+                  <ManagerReview />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/categories"
+              element={
+                <ProtectedRoute managerOnly>
+                  <Categories />
                 </ProtectedRoute>
               }
             />

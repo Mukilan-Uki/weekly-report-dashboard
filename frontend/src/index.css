@@ -94,3 +94,39 @@ button.danger { background: #dc2626; }
 .bar-fill { height: 100%; background: #2563eb; }
 
 .recent { padding: 10px 0; border-top: 1px solid #e5e7eb; }
+
+/* Status pill: draft gray, submitted blue, needs-correction orange, approved green */
+.badge {
+  display: inline-block;
+  padding: 3px 12px;
+  border-radius: 99px;
+  font-size: 13px;
+  font-weight: 600;
+  color: white;
+}
+.badge-draft { background: #6b7280; }
+.badge-submitted { background: #2563eb; }
+.badge-needs-correction { background: #f59e0b; }
+.badge-approved { background: #16a34a; }
+
+/* Category table */
+.table { width: 100%; border-collapse: collapse; }
+.table th, .table td {
+  text-align: left;
+  padding: 10px 8px;
+  border-top: 1px solid #e5e7eb;
+  vertical-align: top;
+}
+.table th { border-top: none; color: #6b7280; font-size: 13px; }
+
+/* Two charts side by side on desktop, stacked on mobile */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+/* Responsive: stack nav, stats and charts on small screens */
+@media (max-width: 640px) {
+  .nav { flex-direction: column; gap: 8px; }
+  .nav .links { flex-wrap: wrap; justify-content: center; }
+  .stats { flex-direction: column; }
+  .grid-2 { grid-template-columns: 1fr; }
+  .table th:nth-child(2), .table td:nth-child(2) { display: none; }
+}

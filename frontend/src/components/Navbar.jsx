@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthContext';
 export default function Navbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const isManager = user?.role === 'manager' || user?.role === 'admin';
 
   function handleLogout() {
     logout();
@@ -19,7 +20,10 @@ export default function Navbar() {
         {user ? (
           <>
             <Link to="/reports">My Reports</Link>
-            <Link to="/dashboard">Team Dashboard</Link>
+            <Link to="/history">History</Link>
+            <Link to="/dashboard">Dashboard</Link>
+            {isManager && <Link to="/review">Review</Link>}
+            {isManager && <Link to="/categories">Categories</Link>}
             <span className="user">
               {user.name} ({user.role})
             </span>

@@ -52,8 +52,9 @@ export default function Register() {
         <label>
           Role
           <select value={role} onChange={(e) => setRole(e.target.value)}>
-            <option value="member">Member</option>
+            <option value="member">Member (TeamMember)</option>
             <option value="manager">Manager</option>
+            <option value="admin">Admin</option>
           </select>
         </label>
         <button type="submit">Create account</button>

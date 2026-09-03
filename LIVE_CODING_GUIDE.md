@@ -39,10 +39,22 @@ Live format: **explain + add features**. This guide gives you both.
 ### Frontend — `src/`
 - `api/client.js`: "One axios instance, baseURL /api, interceptor adds Bearer token from localStorage."
 - `auth/AuthContext.jsx`: "Context holds {user, login, register, logout}. login/register save token + setUser. On reload, useEffect calls /auth/me to restore."
-- `components/ProtectedRoute.jsx`: "If loading show Loading, if no user go /login, if managerOnly and not manager go /reports."
-- `pages/MyReports.jsx`: "useState for list + form + filter + editingId. load() GETs /reports. Submit POSTs or PUTs. Edit fills form, Delete confirms then DELETEs."
-- `pages/TeamDashboard.jsx`: "GETs /dashboard/summary, shows 3 stat cards, bars, recent list."
-- `App.jsx`: "BrowserRouter + AuthProvider + Navbar + Routes. /reports and /dashboard wrapped in ProtectedRoute."
+- `components/ProtectedRoute.jsx`: "If loading show Loading, if no user go /login, if managerOnly and role is member go /reports. Admins pass everywhere managers do."
+- `components/StatusBadge.jsx`: "Tiny reusable pill — same colors on every page so status is always readable."
+- `pages/MyReports.jsx` (personal report page): "Form with fixed structure + category dropdown + validation (required fields, hours 0–168). Save creates a draft; Submit sends it for review. Edit only allowed on draft/needs-correction."
+- `pages/History.jsx`: "Read-only archive with status + week filters, links to detail."
+- `pages/ReportDetail.jsx`: "Read-only view by id: content, manager comments with author names, version history list."
+- `pages/ManagerReview.jsx` (manager/admin): "Queue of submitted reports, filter by member + week. Approve takes an optional note; Request changes REQUIRES a comment — frontend blocks empty, backend 400s it too."
+- `pages/Categories.jsx` (manager/admin): "CRUD table. Delete button only rendered for admins AND backend requireAdmin rejects others — I enforce on both sides."
+- `pages/TeamDashboard.jsx`: "GETs /dashboard/summary with week+status filters. Stat cards, Recharts BarChart (hours by person) and PieChart (byStatus object converted to [{name, value}]), recent list. Charts wrapped in ResponsiveContainer with fixed-height divs."
+- `App.jsx`: "BrowserRouter + AuthProvider + Navbar + 8 Routes. /review and /categories wrapped in ProtectedRoute managerOnly. Navbar links are role-based."
+
+### Backend — workflow edition
+- Report: "Adds status enum (draft/submitted/needs-correction/approved, default draft), optional category ref, comments[] {by, text, at}, versions[] snapshots. Unique index (user, weekStart) still stops duplicates."
+- "PUT saves the OLD content into versions[] first (capped at 20), then overwrites — that's the whole version-history trick."
+- "Transitions are separate POST endpoints so rules are obvious: submit (owner, from draft/correction), approve (manager, from submitted, optional note), request-changes (manager, from submitted, text required). Wrong state → 400, wrong person → 403."
+- Categories: "POST/PUT need manager+, DELETE needs admin — requireRole/requireManager/requireAdmin middleware."
+- Dashboard: "Adds byStatus counts for the pie chart; members auto-filtered to own data."
 
 ## 3. Practice: likely "add a feature" tasks + how to do them
 
