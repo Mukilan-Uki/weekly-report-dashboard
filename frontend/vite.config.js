@@ -8,9 +8,10 @@ export default defineConfig({
     port: 5173,
     allowedHosts: true,
     proxy: {
-      // Frontend calls /api/... -> forwarded to backend :5000
-      // So browser never needs localhost:5000 directly (preview-safe)
       '/api': 'http://localhost:5000',
     },
+  },
+  build: {
+    outDir: 'dist',
   },
 })

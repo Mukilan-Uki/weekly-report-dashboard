@@ -13,6 +13,7 @@ A full-stack web application for managing weekly team reports with role-based ac
 - [Workflows](#workflows)
 - [Setup Instructions](#setup-instructions)
 - [Demo Data](#demo-data)
+- [Hosting on Vercel & Render](#hosting-on-vercel--render)
 - [Technology Stack](#technology-stack)
 
 ---
@@ -428,6 +429,88 @@ Demo accounts:
 - CORS
 - Dotenv
 - Nodemon (dev)
+
+---
+
+## Hosting on Vercel & Render
+
+This project is configured for Vercel (frontend) and Render (backend) deployment.
+
+### Frontend on Vercel
+
+A `vercel.json` file at the project root handles the Vite build and SPA routing.
+
+**Steps:**
+1. Create a Vercel account at [vercel.com](https://vercel.com)
+2. Import the GitHub repository
+3. Vercel uses `vercel.json` to install and build the `frontend` app
+4. In **Settings → Environment Variables**, set `VITE_API_URL` to `https://YOUR-RENDER-SERVICE.onrender.com/api` for Production, Preview, and Development
+5. Deploy
+
+**vercel.json** (already included):
+```json
+{
+  "installCommand": "cd frontend && npm ci",
+  "buildCommand": "cd frontend && npm run build",
+  "outputDirectory": "frontend/dist",
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}
+```
+
+The SPA rewrite keeps direct links such as `/reports` working. The frontend reads `VITE_API_URL` during the Vercel build to call the Render API.
+
+### Backend on Render
+
+The root `render.yaml` Blueprint defines the web service and sets `backend/` as its root directory.
+
+**Steps:**
+1. Create a Render account at [render.com](https://render.com)
+2. Create a new Web Service
+3. Choose **New → Blueprint** and select the repository
+4. Set environment variables:
+   - `MONGODB_URI` — your MongoDB Atlas connection string
+   - `JWT_SECRET` — a long random secret
+   - `FRONTEND_URL` — your Vercel URL, for example `https://your-app.vercel.app`
+   - `NODE_ENV=production`
+5. Deploy
+
+**render.yaml** (included at the repository root):
+```yaml
+services:
+  - type: web
+    runtime: node
+    rootDir: backend
+    buildCommand: npm ci
+    startCommand: npm start
+```
+
+### Environment Variables
+
+**Vercel (Frontend):**
+- `VITE_API_URL` — Your Render API URL (e.g. `https://your-backend.onrender.com/api`)
+
+**Render (Backend):**
+- `PORT` — Port the server listens on (default: 5000)
+- `MONGODB_URI` — MongoDB connection string (use Atlas for production)
+- `JWT_SECRET` — Secret key for JWT signing
+- `FRONTEND_URL` — Comma-separated allowed browser origins, including your Vercel URL
+- `NODE_ENV` — Set to `production`
+
+### MongoDB
+
+Use MongoDB Atlas for production:
+1. Create a cluster at [mongodb.com/cloud/atlas](https://www.mongodb.com/cloud/atlas)
+2. Get your connection string
+3. Set it as `MONGODB_URI` in Render environment variables
+4. Run `npm run seed` once after deployment to populate demo data
+
+### Workflow
+
+1. Push code to GitHub
+2. Both Vercel and Render auto-deploy on push
+3. Frontend serves from `your-app.vercel.app`
+4. Backend API serves from `your-backend.onrender.com`
+5. API requests from the frontend go directly to Render using `VITE_API_URL`
 
 ---
 
