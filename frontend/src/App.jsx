@@ -6,6 +6,13 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import MyReports from './pages/MyReports';
 import TeamDashboard from './pages/TeamDashboard';
+import ReportDetail from './pages/ReportDetail';
+import Categories from './pages/Categories';
+import Projects from './pages/Projects';
+import Users from './pages/Users';
+import ReviewPage from './pages/ReviewPage';
+import Profile from './pages/Profile';
+import ManagerReports from './pages/ManagerReports';
 
 function Home() {
   return (
@@ -39,10 +46,66 @@ export default function App() {
               }
             />
             <Route
+              path="/reports/:id"
+              element={
+                <ProtectedRoute>
+                  <ReportDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/dashboard"
               element={
                 <ProtectedRoute>
                   <TeamDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/categories"
+              element={
+                <ProtectedRoute>
+                  <Categories />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/projects"
+              element={
+                <ProtectedRoute>
+                  <Projects />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/manage"
+              element={
+                <ProtectedRoute>
+                  <ManagerReports />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/users"
+              element={
+                <ProtectedRoute>
+                  <Users />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/review"
+              element={
+                <ProtectedRoute>
+                  <ReviewPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profiles"
+              element={
+                <ProtectedRoute>
+                  <Profile />
                 </ProtectedRoute>
               }
             />

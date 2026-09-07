@@ -94,3 +94,137 @@ button.danger { background: #dc2626; }
 .bar-fill { height: 100%; background: #2563eb; }
 
 .recent { padding: 10px 0; border-top: 1px solid #e5e7eb; }
+
+.badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+.badge.draft { background: #e5e7eb; color: #374151; }
+.badge.submitted { background: #dbeafe; color: #1e40af; }
+.badge.correction { background: #fef3c7; color: #92400e; }
+.badge.approved { background: #d1fae5; color: #065f46; }
+.badge.member { background: #e5e7eb; color: #374151; }
+.badge.manager { background: #dbeafe; color: #1e40af; }
+.badge.admin { background: #fce7f3; color: #9d174d; }
+
+.comment {
+  padding: 10px 0;
+  border-top: 1px solid #e5e7eb;
+}
+.version {
+  padding: 10px 0;
+  border-top: 1px solid #e5e7eb;
+}
+.version strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.selected {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.charts {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 768px) {
+  .charts {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.pie-wrap {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.pie {
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: conic-gradient(#9ca3af 0% 100%);
+}
+
+.pie-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+.trend {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 160px;
+  padding-top: 10px;
+}
+
+.trend-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.trend-bar {
+  width: 100%;
+  max-width: 32px;
+  border-radius: 6px 6px 0 0;
+  min-height: 4px;
+}
+
+.trend-label {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.trend-value {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.checkbox-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.checkbox input {
+  width: auto;
+  margin: 0;
+}

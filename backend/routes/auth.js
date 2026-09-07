@@ -2,7 +2,7 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
-import { requireLogin } from '../middleware/auth.js';
+import { requireLogin, requireAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -101,6 +101,25 @@ router.get('/users', requireLogin, async (req, res) => {
   }
   const users = await User.find().select('name email role').sort({ name: 1 });
   res.json(users.map((u) => ({ id: u._id, name: u.name, email: u.email, role: u.role })));
+});
+
+// PUT /api/auth/users/:id — admin only. Body: { role }
+router.put('/users/:id', requireAdmin, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const { role } = req.body;
+    if (!['member', 'manager', 'admin'].includes(role)) {
+      return res.status(400).json({ message: 'Invalid role' });
+    }
+
+    user.role = role;
+    await user.save();
+    res.json({ id: user._id, name: user.name, email: user.email, role: user.role });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to update user', error: err.message });
+  }
 });
 
 export default router;

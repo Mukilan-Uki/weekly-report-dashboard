@@ -31,6 +31,8 @@ router.get('/summary', async (req, res) => {
 
     // Count reports per workflow status (for the pie chart).
     const byStatus = { draft: 0, submitted: 0, 'needs-correction': 0, approved: 0 };
+    const blockersCount = reports.filter((r) => r.blockers && r.blockers.trim() !== '').length;
+    const correctionCount = reports.filter((r) => r.status === 'needs-correction').length;
     for (const r of reports) {
       if (byStatus[r.status] !== undefined) byStatus[r.status] += 1;
     }
@@ -45,16 +47,62 @@ router.get('/summary', async (req, res) => {
       byUser[key].count += 1;
     }
 
+    // Group by category.
+    const byCategory = {};
+    for (const r of reports) {
+      const catName = r.category?.name || 'Uncategorized';
+      if (!byCategory[catName]) byCategory[catName] = 0;
+      byCategory[catName] += 1;
+    }
+
     res.json({
       totalReports: reports.length,
       totalHours,
       totalMembers: memberCount,
       byStatus,
+      blockersCount,
+      correctionCount,
+      complianceRate:
+        memberCount > 0
+          ? Math.round(((byStatus.approved + byStatus.submitted) / memberCount) * 100)
+          : 0,
       hoursByUser: Object.values(byUser).sort((a, b) => b.hours - a.hours),
+      hoursByCategory: Object.entries(byCategory).map(([name, count]) => ({ name, count })),
       recent: reports.slice(0, 5),
     });
   } catch (err) {
     res.status(500).json({ message: 'Failed to load summary', error: err.message });
+  }
+});
+
+// GET /api/dashboard/trend?weeks=8
+// Returns [{ weekStart, count, hours }] for the last N weeks.
+router.get('/trend', async (req, res) => {
+  try {
+    const weeks = Math.min(52, Math.max(1, parseInt(req.query.weeks || '8', 10) || 8));
+    const isManager = req.user.role === 'manager' || req.user.role === 'admin';
+
+    const now = new Date();
+    const startDate = new Date(now);
+    startDate.setDate(now.getDate() - weeks * 7);
+
+    const filter = { weekStart: { $gte: startDate.toISOString().slice(0, 10) } };
+    if (!isManager) filter.user = req.user.id;
+
+    const reports = await Report.find(filter).sort({ weekStart: 1 });
+    const map = new Map();
+    for (const r of reports) {
+      if (!map.has(r.weekStart)) {
+        map.set(r.weekStart, { weekStart: r.weekStart, count: 0, hours: 0 });
+      }
+      const entry = map.get(r.weekStart);
+      entry.count += 1;
+      entry.hours += r.hours || 0;
+    }
+
+    res.json(Array.from(map.values()));
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to load trend', error: err.message });
   }
 });
 

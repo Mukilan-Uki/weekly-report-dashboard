@@ -27,6 +27,8 @@ const versionSchema = new mongoose.Schema(
     done: String,
     plan: String,
     blockers: String,
+    achievements: String,
+    notes: String,
     hours: Number,
     at: {
       type: Date,
@@ -68,6 +70,14 @@ const reportSchema = new mongoose.Schema(
       required: true,
     },
     blockers: {
+      type: String,
+      default: '',
+    },
+    achievements: {
+      type: String,
+      default: '',
+    },
+    notes: {
       type: String,
       default: '',
     },

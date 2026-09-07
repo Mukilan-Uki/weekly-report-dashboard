@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import client from '../api/client';
+import { useAuth } from '../auth/AuthContext';
 
-// Monday of current week as yyyy-mm-dd (matches backend weekStart format).
 function currentWeekMonday() {
   const d = new Date();
-  const day = (d.getDay() + 6) % 7; // Monday = 0
+  const day = (d.getDay() + 6) % 7;
   d.setDate(d.getDate() - day);
   return d.toISOString().slice(0, 10);
 }
@@ -14,11 +14,16 @@ const emptyForm = {
   done: '',
   plan: '',
   blockers: '',
+  achievements: '',
+  notes: '',
   hours: '',
+  category: '',
 };
 
 export default function MyReports() {
+  const { user } = useAuth();
   const [reports, setReports] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [filterWeek, setFilterWeek] = useState('');
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
@@ -38,9 +43,18 @@ export default function MyReports() {
     }
   }
 
+  async function loadCategories() {
+    try {
+      const res = await client.get('/categories');
+      setCategories(res.data);
+    } catch {
+      // non-blocking
+    }
+  }
+
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    loadCategories();
   }, []);
 
   function updateField(name, value) {
@@ -52,12 +66,14 @@ export default function MyReports() {
     setError('');
     try {
       if (editingId) {
-        // Edit existing report (weekStart cannot change — backend ignores it on PUT)
         const res = await client.put(`/reports/${editingId}`, {
           done: form.done,
           plan: form.plan,
           blockers: form.blockers,
+          achievements: form.achievements,
+          notes: form.notes,
           hours: Number(form.hours),
+          category: form.category || null,
         });
         setReports((list) => list.map((r) => (r._id === editingId ? res.data : r)));
         setEditingId(null);
@@ -65,6 +81,7 @@ export default function MyReports() {
         const res = await client.post('/reports', {
           ...form,
           hours: Number(form.hours),
+          category: form.category || null,
         });
         setReports((list) => [res.data, ...list]);
       }
@@ -81,7 +98,10 @@ export default function MyReports() {
       done: report.done,
       plan: report.plan,
       blockers: report.blockers || '',
+      achievements: report.achievements || '',
+      notes: report.notes || '',
       hours: report.hours,
+      category: report.category?._id || '',
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -96,13 +116,30 @@ export default function MyReports() {
     }
   }
 
+  async function handleSubmitReport(id) {
+    try {
+      const res = await client.post(`/reports/${id}/submit`);
+      setReports((list) => list.map((r) => (r._id === id ? res.data : r)));
+    } catch (err) {
+      setError(err.response?.data?.message || 'Submit failed');
+    }
+  }
+
+  function statusBadge(status) {
+    const map = {
+      draft: 'badge draft',
+      submitted: 'badge submitted',
+      'needs-correction': 'badge correction',
+      approved: 'badge approved',
+    };
+    return <span className={map[status] || 'badge'}>{status}</span>;
+  }
+
   return (
     <div>
       <h2>My Weekly Reports</h2>
-
       {error && <p className="error">{error}</p>}
 
-      {/* Create / Edit form */}
       <form onSubmit={handleSubmit} className="card">
         <h3>{editingId ? 'Edit report' : 'New report'}</h3>
         <div className="row">
@@ -115,6 +152,20 @@ export default function MyReports() {
               required
               disabled={!!editingId}
             />
+          </label>
+          <label>
+            Category
+            <select
+              value={form.category}
+              onChange={(e) => updateField('category', e.target.value)}
+            >
+              <option value="">-- none --</option>
+              {categories.map((c) => (
+                <option key={c._id} value={c._id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
           </label>
           <label>
             Hours
@@ -151,8 +202,22 @@ export default function MyReports() {
             onChange={(e) => updateField('blockers', e.target.value)}
           />
         </label>
+        <label>
+          Achievements (optional)
+          <textarea
+            value={form.achievements}
+            onChange={(e) => updateField('achievements', e.target.value)}
+          />
+        </label>
+        <label>
+          Notes / Links (optional)
+          <textarea
+            value={form.notes}
+            onChange={(e) => updateField('notes', e.target.value)}
+          />
+        </label>
         <div className="row">
-          <button type="submit">{editingId ? 'Save changes' : 'Submit report'}</button>
+          <button type="submit">{editingId ? 'Save changes' : 'Save draft'}</button>
           {editingId && (
             <button
               type="button"
@@ -168,7 +233,6 @@ export default function MyReports() {
         </div>
       </form>
 
-      {/* Filter */}
       <div className="row filter">
         <label>
           Filter by week
@@ -194,7 +258,6 @@ export default function MyReports() {
         )}
       </div>
 
-      {/* List */}
       {loading ? (
         <p>Loading...</p>
       ) : reports.length === 0 ? (
@@ -205,7 +268,10 @@ export default function MyReports() {
             <div key={r._id} className="card">
               <div className="row between">
                 <strong>Week of {r.weekStart}</strong>
-                <span>{r.hours}h</span>
+                <div className="row">
+                  {statusBadge(r.status)}
+                  <span>{r.hours}h</span>
+                </div>
               </div>
               <p>
                 <strong>Done:</strong> {r.done}
@@ -218,13 +284,28 @@ export default function MyReports() {
                   <strong>Blockers:</strong> {r.blockers}
                 </p>
               )}
-              {r.user?.name && (
-                <p className="muted">By {r.user.name}</p>
+              {r.achievements && (
+                <p>
+                  <strong>Achievements:</strong> {r.achievements}
+                </p>
+              )}
+              {r.notes && (
+                <p>
+                  <strong>Notes:</strong> {r.notes}
+                </p>
+              )}
+              {r.category?.name && (
+                <p className="muted">Category: {r.category.name}</p>
               )}
               <div className="row">
                 <button className="secondary" onClick={() => startEdit(r)}>
                   Edit
                 </button>
+                {(r.status === 'draft' || r.status === 'needs-correction') && (
+                  <button className="secondary" onClick={() => handleSubmitReport(r._id)}>
+                    Submit
+                  </button>
+                )}
                 <button className="danger" onClick={() => handleDelete(r._id)}>
                   Delete
                 </button>

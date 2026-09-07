@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import User from './models/User.js';
 import Report from './models/Report.js';
 import Category from './models/Category.js';
+import Project from './models/Project.js';
 
 dotenv.config();
 
@@ -20,6 +21,7 @@ async function main() {
   const emails = ['member@demo.com', 'manager@demo.com', 'admin@demo.com'];
   await User.deleteMany({ email: { $in: emails } });
   await Category.deleteMany({ name: { $in: ['Development', 'Design', 'Testing'] } });
+  await Project.deleteMany({ name: { $in: ['Website Redesign', 'Mobile App', 'Data Pipeline'] } });
 
   const member = await User.create({
     name: 'Demo Member',
@@ -46,17 +48,34 @@ async function main() {
   await Category.create({ name: 'Design', description: 'UI/UX tasks' });
   await Category.create({ name: 'Testing', description: 'QA tasks' });
 
+  const website = await Project.create({
+    name: 'Website Redesign',
+    description: 'Redesign the marketing website',
+    members: [member._id],
+  });
+  await Project.create({
+    name: 'Mobile App',
+    description: 'Build customer-facing mobile app',
+    members: [member._id, manager._id],
+  });
+  await Project.create({
+    name: 'Data Pipeline',
+    description: 'ETL pipeline for analytics',
+    members: [manager._id],
+  });
+
   await Report.deleteMany({ user: { $in: [member._id, manager._id] } });
 
   await Report.create([
     {
-      // Approved report WITH a manager comment and one version in history
       user: member._id,
       category: dev._id,
       weekStart: '2026-08-24',
       done: 'Finished login page and API integration',
       plan: 'Build report form and filters',
       blockers: 'Waiting for API docs',
+      achievements: 'Mentored junior dev on auth flow',
+      notes: 'Link to PR: https://github.com/example/pr/123',
       hours: 32,
       status: 'approved',
       comments: [{ by: manager._id, text: 'Good work, approved.' }],
@@ -65,28 +84,32 @@ async function main() {
           done: 'Started login page',
           plan: 'Finish login page',
           blockers: '',
+          achievements: '',
+          notes: '',
           hours: 30,
         },
       ],
     },
     {
-      // Waiting for manager review
       user: member._id,
       category: dev._id,
       weekStart: '2026-08-31',
       done: 'Built report CRUD and dashboard bars',
       plan: 'Testing and bug fixes',
       blockers: '',
+      achievements: 'Fixed 3 critical bugs',
+      notes: '',
       hours: 38,
       status: 'submitted',
     },
     {
-      // Still a draft the member is writing
       user: member._id,
       weekStart: '2026-09-07',
       done: 'Started charts with Recharts',
       plan: 'Finish dashboard and category page',
       blockers: 'Chart colors look off',
+      achievements: '',
+      notes: 'Need design review for color palette',
       hours: 10,
       status: 'draft',
     },
@@ -96,6 +119,8 @@ async function main() {
       done: 'Reviewed team reports, sprint planning',
       plan: 'Client demo preparation',
       blockers: 'None',
+      achievements: 'Closed 5 story points',
+      notes: '',
       hours: 25,
       status: 'submitted',
     },

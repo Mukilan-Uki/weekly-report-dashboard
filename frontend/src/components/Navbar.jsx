@@ -10,6 +10,8 @@ export default function Navbar() {
     navigate('/login');
   }
 
+  const isManager = user?.role === 'manager' || user?.role === 'admin';
+
   return (
     <nav className="nav">
       <Link to="/" className="brand">
@@ -19,7 +21,13 @@ export default function Navbar() {
         {user ? (
           <>
             <Link to="/reports">My Reports</Link>
-            <Link to="/dashboard">Team Dashboard</Link>
+            {isManager && <Link to="/reports/manage">All Reports</Link>}
+            {isManager && <Link to="/review">Review</Link>}
+            {isManager && <Link to="/dashboard">Dashboard</Link>}
+            {isManager && <Link to="/categories">Categories</Link>}
+            {isManager && <Link to="/projects">Projects</Link>}
+            {user?.role === 'admin' && <Link to="/users">Users</Link>}
+            {isManager && <Link to="/profiles">Profiles</Link>}
             <span className="user">
               {user.name} ({user.role})
             </span>

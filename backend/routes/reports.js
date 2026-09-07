@@ -63,10 +63,10 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/reports — create a DRAFT.
-// Body: { weekStart, done, plan, blockers?, hours, category? }
+// Body: { weekStart, done, plan, blockers?, achievements?, notes?, hours, category? }
 router.post('/', async (req, res) => {
   try {
-    const { weekStart, done, plan, blockers, hours, category } = req.body;
+    const { weekStart, done, plan, blockers, achievements, notes, hours, category } = req.body;
 
     if (!weekStart || !done || !plan || hours === undefined) {
       return res.status(400).json({ message: 'weekStart, done, plan and hours are required' });
@@ -79,6 +79,8 @@ router.post('/', async (req, res) => {
       done,
       plan,
       blockers: blockers || '',
+      achievements: achievements || '',
+      notes: notes || '',
       hours: Number(hours),
       status: 'draft',
     });
@@ -86,7 +88,6 @@ router.post('/', async (req, res) => {
     await report.populate(populates);
     res.status(201).json(report);
   } catch (err) {
-    // 11000 = duplicate key (same user + same weekStart)
     if (err.code === 11000) {
       return res.status(400).json({ message: 'You already have a report for this week' });
     }
@@ -116,6 +117,8 @@ router.put('/:id', async (req, res) => {
       done: report.done,
       plan: report.plan,
       blockers: report.blockers,
+      achievements: report.achievements,
+      notes: report.notes,
       hours: report.hours,
     });
     // Keep history short (last 20) so documents stay small.
@@ -123,10 +126,12 @@ router.put('/:id', async (req, res) => {
       report.versions = report.versions.slice(-20);
     }
 
-    const { done, plan, blockers, hours, category } = req.body;
+    const { done, plan, blockers, achievements, notes, hours, category } = req.body;
     if (done !== undefined) report.done = done;
     if (plan !== undefined) report.plan = plan;
     if (blockers !== undefined) report.blockers = blockers;
+    if (achievements !== undefined) report.achievements = achievements;
+    if (notes !== undefined) report.notes = notes;
     if (hours !== undefined) report.hours = Number(hours);
     if (category !== undefined) report.category = category || null;
 
@@ -204,6 +209,27 @@ router.post('/:id/request-changes', requireManager, async (req, res) => {
     res.json(report);
   } catch (err) {
     res.status(500).json({ message: 'Failed to request changes', error: err.message });
+  }
+});
+
+// GET /api/reports/manager/all — manager/admin report list with full filters.
+// Query: user, category, status, weekStart, weekEnd
+router.get('/manager/all', requireManager, async (req, res) => {
+  try {
+    const filter = {};
+    if (req.query.user) filter.user = req.query.user;
+    if (req.query.category) filter.category = req.query.category;
+    if (req.query.status) filter.status = req.query.status;
+    if (req.query.weekStart) filter.weekStart = { $gte: req.query.weekStart };
+    if (req.query.weekEnd) filter.weekStart = { ...filter.weekStart, $lte: req.query.weekEnd };
+
+    const reports = await Report.find(filter)
+      .populate(populates)
+      .sort({ weekStart: -1 });
+
+    res.json(reports);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to load reports', error: err.message });
   }
 });
 
